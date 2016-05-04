@@ -1,5 +1,6 @@
 import re
 import time
+import math
 
 class Ws425:
     REF_TRUE = 0
@@ -17,9 +18,10 @@ class Ws425:
         self.valid = False
         self.checksum = 0
         
+        # history is an array of tuples in the format (dir, speed, time)
         self.windHistory = []
         
-    def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n"):
+    def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=time.time()):
         nmeaList = nmea.split(',')
         
         if (nmeaList[0] == '$WIMWV'):
@@ -48,7 +50,7 @@ class Ws425:
             # checksum
             self.checksum = int(nmeaList[5].split('*')[1])
             
-            now = int(time.time())
+            now = int(ts)
             history = (self.dir, self.speed, now)
             # keep the last 10 minutes of samples
             self.windHistory.append(history)
@@ -67,10 +69,63 @@ class Ws425:
 
     def GetAvgSpeed(self):
         """Return the average speed"""
+        accum = 0
+        count = 0
+        # look at the last 2 minutes
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        for entry in self.windHistory:
+            if (lastEntryTime - entry[2] < 120):
+                accum += entry[1]
+                count += 1
+            
+        return accum / count
         
     def GetAvgDir(self):
-        """Return the average direction in degrees"""
+        """Return the average direction in degrees. Using a vector average"""
+        xaccum = 0
+        yaccum = 0
+        count = 0
+        # look at the last 2 minutes
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        for entry in self.windHistory:
+            if (lastEntryTime - entry[2] < 120):
+                xaccum += math.cos(math.radians(entry[0])) * entry[1]
+                yaccum += math.sin(math.radians(entry[0])) * entry[1]
+                count += 1
+                
+        x = xaccum / count
+        y = yaccum / count
+        
+        avgDegrees = round(math.degrees(math.atan2(y, x)))
+        if (avgDegrees < 0):
+            return avgDegrees + 360
+        else:
+            return avgDegrees
+        
         
     def GetGust(self):
         """Return the gust factor, 0 if no gust is calculated"""
+        accum = 0
+        count = 0
+        min = 200
+        max = 0
+        
+        # look at the last 10 minutes
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        for entry in self.windHistory:
+            if (lastEntryTime - entry[2] < 600):
+                accum += entry[1]
+                count += 1
+                
+                if (entry[1] < min):
+                    min = entry[1]
+                    
+                if (entry[1] > max):
+                    max = entry[1]
+        
+        if (max >= 16):
+            if (max - min > 9):
+                return max
+            
+        return 0
     
