@@ -34,6 +34,7 @@ class Radio:
         
         while self.keepGoing:
             sql = self.GetSquelchStatus()
+            now = time.time()
             
             if (sql == True):
                 if (lastSqlState == False):
@@ -41,7 +42,6 @@ class Radio:
                     lastSqlState = True
             else:
                 if (lastSqlState == True):
-                    now = time.time()
                     if ((now - pulseStartTime) > 0.2 and (now - pulseStartTime < 1.5)):
                         # pulse is detected
                         if (clickState == "waitingFirst"):
@@ -66,6 +66,11 @@ class Radio:
                                 clickState = "waitingFirst"
                             
                     lastSqlState = False
+                    
+            # timeout for clicks too far apart
+            if ((now - lastClickTime) > self.MAX_CLICK_SPACING):
+                clickState = "waitingFirst"
+                
             time.sleep(0.05)
             
     def GetTriggered(self):
