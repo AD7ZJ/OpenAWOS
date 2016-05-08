@@ -17,21 +17,21 @@ class RadioTests(unittest.TestCase):
         """Test the microphone clicking works correctly"""
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertTrue(self.radio.GetTriggered(), "Failed to trigger after three clicks")
         
@@ -39,21 +39,21 @@ class RadioTests(unittest.TestCase):
         """Test that long duration squelch events do not generate a trigger"""
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(2)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
@@ -61,9 +61,9 @@ class RadioTests(unittest.TestCase):
         """Test that clicks spaced too far apart do not generate a trigger"""
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
@@ -71,21 +71,21 @@ class RadioTests(unittest.TestCase):
         time.sleep(4)
         
         # now it should take three clicks to trigger again
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
-        self.radio.SetSquelchInputStatus(True)
+        self.radio.SetSimSquelchInput(True)
         time.sleep(0.3)
-        self.radio.SetSquelchInputStatus(False)
+        self.radio.SetSimSquelchInput(False)
         time.sleep(0.5)
         self.assertTrue(self.radio.GetTriggered(), "Failed to trigger after three clicks")
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")

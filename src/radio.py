@@ -73,6 +73,12 @@ class Radio:
                 
             time.sleep(0.05)
             
+    def SendReport(self):
+        """Keys the radio and outputs the synthesized audio"""
+        self.SetTxLevel(True)
+        
+        
+            
     def GetTriggered(self):
         trigd = False
         self.lock.acquire()
@@ -81,7 +87,7 @@ class Radio:
         self.lock.release()
         return trigd
     
-    def SetSquelchInputStatus(self, state):
+    def SetSimSquelchInput(self, state):
         self.simSquelchInput = state
         
     def GetSquelchStatus(self):
@@ -94,5 +100,9 @@ class Radio:
             GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
             
             return GPIO.input(18)
+        
+    def SetTxLevel(self, state):
+        """Set the TX output pin"""
+        
     
     
