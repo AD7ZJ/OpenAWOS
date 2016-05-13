@@ -18,7 +18,7 @@ class Ws425:
         self.valid = False
         self.checksum = 0
         
-        # history is an array of tuples in the format (dir, speed, time)
+        # history is an array of dictionaries in the form of { 'dir', 'speed', 'time'}
         self.windHistory = []
         
     def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=time.time()):
@@ -51,10 +51,10 @@ class Ws425:
             self.checksum = int(nmeaList[5].split('*')[1])
             
             now = int(ts)
-            history = (self.dir, self.speed, now)
+            history = {'dir' : self.dir, 'speed' : self.speed, 'time' : now}
             # keep the last 10 minutes of samples
             self.windHistory.append(history)
-            if (now - self.windHistory[0][2] > 600):
+            if (now - self.windHistory[0]['time'] > 600):
                 self.windHistory = self.windHistory[1:]
             
     def CalcChecksum(self, nmea):
@@ -72,10 +72,10 @@ class Ws425:
         accum = 0
         count = 0
         # look at the last 2 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
         for entry in self.windHistory:
-            if (lastEntryTime - entry[2] < 120):
-                accum += entry[1]
+            if (lastEntryTime - entry['time'] < 120):
+                accum += entry['speed']
                 count += 1
             
         return accum / count
@@ -86,11 +86,11 @@ class Ws425:
         yaccum = 0
         count = 0
         # look at the last 2 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
         for entry in self.windHistory:
-            if (lastEntryTime - entry[2] < 120):
-                xaccum += math.cos(math.radians(entry[0])) * entry[1]
-                yaccum += math.sin(math.radians(entry[0])) * entry[1]
+            if (lastEntryTime - entry['time'] < 120):
+                xaccum += math.cos(math.radians(entry['dir'])) * entry['speed']
+                yaccum += math.sin(math.radians(entry['dir'])) * entry['speed']
                 count += 1
                 
         x = xaccum / count
@@ -111,17 +111,17 @@ class Ws425:
         max = 0
         
         # look at the last 10 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1][2]
+        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
         for entry in self.windHistory:
-            if (lastEntryTime - entry[2] < 600):
-                accum += entry[1]
+            if (lastEntryTime - entry['time'] < 600):
+                accum += entry['speed']
                 count += 1
                 
-                if (entry[1] < min):
-                    min = entry[1]
+                if (entry['speed'] < min):
+                    min = entry['speed']
                     
-                if (entry[1] > max):
-                    max = entry[1]
+                if (entry['speed'] > max):
+                    max = entry['speed']
         
         if (max >= 16):
             if (max - min > 9):
