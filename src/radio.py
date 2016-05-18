@@ -1,11 +1,13 @@
 import threading
 import time
+import audio
 
 class Radio:
     MIN_CLICK_SPACING = 0.4
     MAX_CLICK_SPACING = 3.0
+    audioDev = None
     
-    def __init__(self, simulate=False):
+    def __init__(self, simulate=False, audioDev = None):
         """Constructor"""
         self.keepGoing = False
         self.thread = None
@@ -13,7 +15,9 @@ class Radio:
         self.simulate = simulate
         self.simSquelchInput = False
         self.triggered = False
-        
+        self.audioDev = audioDev
+        if (self.audioDev == None):
+            self.audioDev = audio.Audio()
         
     def Start(self):
         """Start monitoring the radio's squelch line"""
@@ -73,11 +77,37 @@ class Radio:
                 
             time.sleep(0.05)
             
-    def SendReport(self):
+    def SendReport(self, windReport):
         """Keys the radio and outputs the synthesized audio"""
+        avgSpeed = windReport['avgSpeed']
+        avgDir = windReport['avgDir']
+        gust = windReport['gust']
+        
         self.SetTxLevel(True)
         
+        self.audioDev.PlayWavFile('wind')
         
+        if (avgSpeed == 0):
+            self.audioDev.PlayWavFile('calm')
+        else:
+            
+            dirStr = str(avgDir)
+            for digit in dirStr:
+                self.audioDev.PlayWavFile(digit)
+            
+            self.audioDev.PlayWavFile('at')
+            
+            speedStr = str(avgSpeed)
+            for digit in speedStr:
+                self.audioDev.PlayWavFile(digit)
+                
+            if (gust != 0):
+                self.audioDev.PlayWavFile('gusting')
+                gustStr = str(gust)
+                for digit in gustStr:
+                    self.audioDev.PlayWavFile(digit)
+        
+        self.SetTxLevel(False)
             
     def GetTriggered(self):
         trigd = False

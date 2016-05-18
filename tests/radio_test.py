@@ -1,12 +1,20 @@
 import unittest
+import audio
 from radio import *
+
+class MockAudio(audio.Audio):
+    fileList = []
+    def PlayWavFile(self, filename):
+        self.fileList.append(filename)
 
 class RadioTests(unittest.TestCase):
     radio = None
+    mockAudio = None
 
     def setUp(self):
         """Call before every test case."""
-        self.radio = Radio(simulate = True)
+        self.mockAudio = MockAudio()
+        self.radio = Radio(simulate = True, audioDev = self.mockAudio)
         self.radio.Start()
 
     def tearDown(self):
@@ -90,6 +98,17 @@ class RadioTests(unittest.TestCase):
         self.assertTrue(self.radio.GetTriggered(), "Failed to trigger after three clicks")
         self.assertFalse(self.radio.GetTriggered(), "Reported triggered when it shouldn't")
         
+    def testReportTx(self):
+        rpt = { 'avgSpeed' : 17, 'avgDir' : 100, 'gust' : 0}  
+        self.radio.SendReport(rpt)
+        self.assertTrue(self.mockAudio.fileList == ['wind', '1', '0', '0', 'at', '1', '7'], "failed to play correct files")
+        self.mockAudio.fileList = []
+        
+        rpt = { 'avgSpeed' : 17, 'avgDir' : 100, 'gust' : 25}  
+        self.radio.SendReport(rpt)
+        self.assertTrue(self.mockAudio.fileList == ['wind', '1', '0', '0', 'at', '1', '7', 'gusting', '2', '5'], "failed to play correct files")
+        
 if __name__ == "__main__":
-    unittest.main() # run all tests
+    unittest.main()
+
         
