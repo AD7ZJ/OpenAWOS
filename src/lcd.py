@@ -80,19 +80,19 @@ class I2CLcd:
         bits_low = mode | ((bits << 4) & 0xF0) | self.LCD_BACKLIGHT
         
         # High bits
-        self.bus.WriteByte(self.I2C_ADDR, bits_high)
+        self.bus.write_byte(self.I2C_ADDR, bits_high)
         self.ToggleEnable(bits_high)
         
         # Low bits
-        self.bus.WriteByte(self.I2C_ADDR, bits_low)
+        self.bus.write_byte(self.I2C_ADDR, bits_low)
         self.ToggleEnable(bits_low)
     
     def ToggleEnable(self, bits):
         # Toggle enable
         time.sleep(self.E_DELAY)
-        self.bus.WriteByte(self.I2C_ADDR, (bits | self.ENABLE))
+        self.bus.write_byte(self.I2C_ADDR, (bits | self.ENABLE))
         time.sleep(self.E_PULSE)
-        self.bus.WriteByte(self.I2C_ADDR, (bits & ~self.ENABLE))
+        self.bus.write_byte(self.I2C_ADDR, (bits & ~self.ENABLE))
         time.sleep(self.E_DELAY)
     
     def WriteString(self, message, line):
@@ -108,17 +108,14 @@ class I2CLcd:
         self.lcd_byte(0x01, self.LCD_CMD)
 
 def main():
-    # Main program block
-    
     # Initialise display
     lcd = I2CLcd()
     
     while True:
-        # Send some test
-        lcd.WriteString("RPiSpy         <", lcd.LCD_LINE_1)
-        lcd.WriteString("I2C LCD        <", lcd.LCD_LINE_2)
+        lcd.WriteString("AZ86 Wind      ", lcd.LCD_LINE_1)
+        lcd.WriteString(time.strftime("%H:%M:%S"), lcd.LCD_LINE_2)
         
-        time.sleep(3)
+        time.sleep(1)
         
 
 if __name__ == '__main__':
