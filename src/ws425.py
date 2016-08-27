@@ -34,7 +34,7 @@ class Ws425:
             self.reference = refConv[nmeaList[2]]
                 
             # speed
-            self.speed = int(nmeaList[3])
+            self.speed = float(nmeaList[3])
             
             # units
             unitConv = {'K' : self.UNITS_KPH,
@@ -48,7 +48,7 @@ class Ws425:
             self.valid = validConv[nmeaList[5].split('*')[0]]
             
             # checksum
-            self.checksum = int(nmeaList[5].split('*')[1])
+            self.checksum = int(nmeaList[5].split('*')[1], 16)
             
             now = int(ts)
             history = {'dir' : self.dir, 'speed' : self.speed, 'time' : now}
@@ -56,7 +56,7 @@ class Ws425:
             self.windHistory.append(history)
             if (now - self.windHistory[0]['time'] > 600):
                 self.windHistory = self.windHistory[1:]
-            
+
     def CalcChecksum(self, nmea):
         result = re.search('\$(.*)\*', nmea)
         str = result.group(1)
