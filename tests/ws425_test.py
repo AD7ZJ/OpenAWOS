@@ -101,6 +101,19 @@ class Ws425Tests(unittest.TestCase):
         anemometer.Update("$WIMWV,270,T,10,N,A*01\r\n", 0)
         anemometer.Update("$WIMWV,90,T,20,N,A*01\r\n", 1)
         self.assertEqual(anemometer.GetAvgDir(), 90, "Average direction calculated incorrectly")
+        
+    def testEmptyPacket(self):
+        """Test correct handling of an empty packet"""
+        anemometer = Ws425()
+        anemometer.Update("$WIMWV,,R,,N,V*34\r\n", 0)
+        anemometer.Update("$WIMWV,270,T,,N,A*01\r\n", 0)
+        self.assertEqual(anemometer.GetAvgSpeed(), 0, "Failed to correctly calculate avg windspeed when wind history is empty")
+        self.assertEqual(anemometer.GetAvgDir(), 0, "Failed to correctly calculate avg wind direction when wind history is empty")
+        self.assertEqual(anemometer.GetGust(), 0, "Failed to correctly calculate wind gust when wind history is empty")
+
+
+        self.assertEqual(len(anemometer.windHistory), 0, "Failed to ignore empty packets")
+
 
 if __name__ == "__main__":
     unittest.main() # run all tests

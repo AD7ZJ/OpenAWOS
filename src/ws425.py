@@ -24,7 +24,8 @@ class Ws425:
     def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=time.time()):
         nmeaList = nmea.split(',')
         
-        if (nmeaList[0] == '$WIMWV'):
+        # Only try and parse $WIMWV strings with no empty sets
+        if (nmeaList[0] == '$WIMWV' and min(map(len, nmeaList)) > 0):
             # Direction in degrees
             self.dir = int(nmeaList[1])
             
@@ -72,13 +73,16 @@ class Ws425:
         accum = 0
         count = 0
         # look at the last 2 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
-        for entry in self.windHistory:
-            if (lastEntryTime - entry['time'] < 120):
-                accum += entry['speed']
-                count += 1
-            
-        return accum / count
+        if (len(self.windHistory) > 0):
+            lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
+            for entry in self.windHistory:
+                if (lastEntryTime - entry['time'] < 120):
+                    accum += entry['speed']
+                    count += 1
+                
+            return accum / count
+        else:
+            return 0
         
     def GetAvgDir(self):
         """Return the average direction in degrees. Using a vector average"""
@@ -86,21 +90,24 @@ class Ws425:
         yaccum = 0
         count = 0
         # look at the last 2 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
-        for entry in self.windHistory:
-            if (lastEntryTime - entry['time'] < 120):
-                xaccum += math.cos(math.radians(entry['dir'])) * entry['speed']
-                yaccum += math.sin(math.radians(entry['dir'])) * entry['speed']
-                count += 1
-                
-        x = xaccum / count
-        y = yaccum / count
-        
-        avgDegrees = round(math.degrees(math.atan2(y, x)))
-        if (avgDegrees < 0):
-            return avgDegrees + 360
+        if (len(self.windHistory) > 0):
+            lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
+            for entry in self.windHistory:
+                if (lastEntryTime - entry['time'] < 120):
+                    xaccum += math.cos(math.radians(entry['dir'])) * entry['speed']
+                    yaccum += math.sin(math.radians(entry['dir'])) * entry['speed']
+                    count += 1
+                    
+            x = xaccum / count
+            y = yaccum / count
+            
+            avgDegrees = round(math.degrees(math.atan2(y, x)))
+            if (avgDegrees < 0):
+                return avgDegrees + 360
+            else:
+                return avgDegrees
         else:
-            return avgDegrees
+            return 0
         
         
     def GetGust(self):
@@ -111,21 +118,24 @@ class Ws425:
         max = 0
         
         # look at the last 10 minutes
-        lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
-        for entry in self.windHistory:
-            if (lastEntryTime - entry['time'] < 600):
-                accum += entry['speed']
-                count += 1
-                
-                if (entry['speed'] < min):
-                    min = entry['speed']
+        if (len(self.windHistory) > 0):
+            lastEntryTime = self.windHistory[len(self.windHistory) - 1]['time']
+            for entry in self.windHistory:
+                if (lastEntryTime - entry['time'] < 600):
+                    accum += entry['speed']
+                    count += 1
                     
-                if (entry['speed'] > max):
-                    max = entry['speed']
-        
-        if (max >= 16):
-            if (max - min > 9):
-                return max
+                    if (entry['speed'] < min):
+                        min = entry['speed']
+                        
+                    if (entry['speed'] > max):
+                        max = entry['speed']
             
-        return 0
+            if (max >= 16):
+                if (max - min > 9):
+                    return max
+                
+            return 0
+        else:
+            return 0
     
