@@ -1,25 +1,37 @@
 import serial
+import time
+import kiss
+import aprs
 from ws425 import *
 import lcd
 
-class WindSample:
-    """One wind speed measurement"""
-    
-    def __init__(self):
-        """Constructor"""
-    
+
+ws425SerialPort = "/dev/ttyUSB0"
+tncSerialPort = "/dev/ttyAMA0"
+now = 0
+lastPacketTime = 0
+REPORT_INTERVAL = 10
+
 
 def main():
+    lastPacketTime = 0
     print ("Starting OpenAWOS...")
-    
-    
-    port = serial.Serial(baudrate=2400, port='/dev/ttyUSB0', timeout=5) # /dev/ttyAMA0
-    lcdDev = lcd.I2CLcd()
-    anemometer = Ws425()
+    frame = aprs.Frame()
+    frame.source = aprs.Callsign('AD7ZJ-14')
+    frame.destination = aprs.Callsign('APRS')
+    frame.path = [aprs.Callsign('WIDE1-1')]
 
-    lcdDev.WriteString("AZ86 Wind      ", lcdDev.LCD_LINE_1)
+    print("Opening TNC on %s" % tncSerialPort)
+    tnc = kiss.SerialKISS(port=tncSerialPort, speed='19200')
+    tnc.start()
+
+    print("Connecting to Ws425 on %s" % ws425SerialPort) 
+    port = serial.Serial(baudrate=2400, port=ws425SerialPort, timeout=5)
+    anemometer = Ws425()
     anemometer.Update()
-    
+
+    lcdDev = lcd.I2CLcd()
+    lcdDev.WriteString("AZ86 Wind      ", lcdDev.LCD_LINE_1)
     
     while (1):
         # poll serial port
@@ -43,7 +55,14 @@ def main():
    
             print windString 
             lcdDev.WriteString(windString, lcdDev.LCD_LINE_2)
-    
+
+            now = time.time()
+            if (now - lastPacketTime > REPORT_INTERVAL):
+                frame.text = '!3441.14N/11217.40W_%03d/%03dg%03dW425' % (avgDir, avgSpeed, gust)
+                tnc.write(frame.encode_kiss())
+                lastPacketTime = now
+   
+
     
 def CheckSquelch():
     return False
