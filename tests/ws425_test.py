@@ -115,5 +115,13 @@ class Ws425Tests(unittest.TestCase):
         self.assertEqual(len(anemometer.windHistory), 0, "Failed to ignore empty packets")
 
 
+    def testPacketChecksum(self):
+        anemometer = Ws425()
+        self.assertEqual(anemometer.CalcChecksum("V,270,T,,N,A*01\r\n"), 0, "Failed to correctly handle a partial packet")
+        self.assertEqual(anemometer.CalcChecksum("$WIMWV,030,R,000.2,N,A*3C"), 0x3C, "Failed to correctly calculate the checksum")
+
+
+
+
 if __name__ == "__main__":
     unittest.main() # run all tests

@@ -59,10 +59,12 @@ class Ws425:
                 self.windHistory = self.windHistory[1:]
 
     def CalcChecksum(self, nmea):
+        str = ""
         result = re.search('\$(.*)\*', nmea)
-        str = result.group(1)
-        checksum = 0
-        
+        if (result is not None):
+            str = result.group(1)
+
+        checksum = 0        
         for character in str:
             checksum ^= ord(character)
             
