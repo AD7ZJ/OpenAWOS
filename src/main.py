@@ -4,10 +4,11 @@ import kiss
 import aprs
 from ws425 import *
 import lcd
-
+from gpiozero import MCP3008
     
 class OpenAWOS:
     REPORT_INTERVAL = 10
+    STATUS_INTERVAL = 20
 
 
     def __init__(self, tncSerial="", ws425Serial = ""):
@@ -17,6 +18,7 @@ class OpenAWOS:
         self.latString = "00000.00"
         self.lonString = "00000.00"
         self.lastPacketTime = 0
+        self.lastStatusPacketTime = 0
         self.ws425SerialPort = ws425Serial
         self.tncSerialPort = tncSerial
 
@@ -38,6 +40,18 @@ class OpenAWOS:
         self.latString = "%02d%02d.%02dN" % (int(degreesLat), int(minutesLat), (minutesLat - int(minutesLat)) * 100)
         self.lonString = "%03d%02d.%02dW" % (int(degreesLon), int(minutesLon), (minutesLon - int(minutesLon)) * 100)
 
+    def GetVoltage(self):
+        vref = 3.33
+        conversion_factor = 4.677 # 3.3k / 12 k divider
+        
+        adc = MCP3008(channel=0)
+        # average several readings
+        readings = 0.0
+        repetitions = 20
+        for y in range(repetitions):
+            readings += adc.value
+        average = readings / repetitions
+        return (vref * average * conversion_factor)
 
     def Run(self):
         print ("Starting OpenAWOS...")
@@ -87,6 +101,10 @@ class OpenAWOS:
                     tnc.write(frame.encode_kiss())
                     self.lastPacketTime = now
        
+                if (now - self.lastStatusPacketTime > self.STATUS_INTERVAL):
+                    frame.text = '>Battery: %.02fV' % (self.GetVoltage())
+                    tnc.write(frame.encode_kiss())
+                    self.lastStatusPacketTime = now
 
     
 if __name__ == '__main__':
