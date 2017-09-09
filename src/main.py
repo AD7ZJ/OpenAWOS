@@ -1,8 +1,11 @@
+import signal
+import sys
 import serial
 import time
 import kiss
 import aprs
 from ws425 import *
+from radio import *
 import lcd
 from gpiozero import MCP3008
     
@@ -71,8 +74,13 @@ class OpenAWOS:
 
         lcdDev = lcd.I2CLcd()
         lcdDev.WriteString("AZ86 Wind      ", lcdDev.LCD_LINE_1)
-        
+    
+        self.radio = Radio()
+        self.radio.Start()
+
+    
         while (1):
+            print self.radio.GetTriggered()
             # poll serial port
             line = port.readline()
             print line 
@@ -105,9 +113,21 @@ class OpenAWOS:
                     frame.text = '>Battery: %.02fV' % (self.GetVoltage())
                     tnc.write(frame.encode_kiss())
                     self.lastStatusPacketTime = now
-
+    
+    def Stop(self):
+        self.radio.Stop()
     
 if __name__ == '__main__':
+
+    # catch ctrl-c so we can cleanup the GPIO driver and child threads
+    def sigHandler(signal, frame):
+        print('Caught SIGINT, exiting...\n')
+        station.Stop()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, sigHandler)
+
+
     station = OpenAWOS(tncSerial = "/dev/ttyAMA0", ws425Serial = "/dev/ttyUSB0")
     station.SetCallsign("AD7ZJ-14")
     station.SetPath("WIDE1-1")

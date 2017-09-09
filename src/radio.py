@@ -4,7 +4,7 @@ import audio
 
 class Radio:
     MIN_CLICK_SPACING = 0.4
-    MAX_CLICK_SPACING = 3.0
+    MAX_CLICK_SPACING = 1.5
     audioDev = None
     
     def __init__(self, simulate=False, audioDev = None):
@@ -27,6 +27,9 @@ class Radio:
         
     def Stop(self):
         self.keepGoing = False
+        if (not self.simulate):
+            import RPi.GPIO as GPIO
+            GPIO.cleanup()
         self.thread.join()
 
     def Update(self):
@@ -35,7 +38,7 @@ class Radio:
         clickState = "waitingFirst"
         pulseStartTime = 0
         lastClickTime = 0
-        
+       
         while self.keepGoing:
             sql = self.GetSquelchStatus()
             now = time.time()
@@ -127,9 +130,9 @@ class Radio:
             import RPi.GPIO as GPIO
             GPIO.setmode(GPIO.BCM)
             
-            GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            
-            return GPIO.input(18)
+            GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+           
+            return not GPIO.input(6)
         
     def SetTxLevel(self, state):
         """Set the TX output pin"""
