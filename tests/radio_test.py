@@ -110,9 +110,9 @@ class RadioTests(unittest.TestCase):
         self.assertTrue(self.mockAudio.reportMsg == "Wind, 1, 0, 0, at, 1, 7, ", "failed to play correct files")
         self.mockAudio.fileList = []
         
-        rpt = { 'avgSpeed' : 17, 'avgDir' : 259, 'gust' : 25}  
+        rpt = { 'avgSpeed' : 17.32, 'avgDir' : 257, 'gust' : 24.8}  
         self.radio.SendReport(rpt)
-        self.assertTrue(self.mockAudio.reportMsg == "Wind, 2, 5, 9, at, 1, 7, gusting, 2, 5, ", "failed to play correct files")
+        self.assertTrue(self.mockAudio.reportMsg == "Wind, 2, 6, 0, at, 1, 7, gusting, 2, 5, ", "failed to play correct files")
         
 if __name__ == "__main__":
     unittest.main()

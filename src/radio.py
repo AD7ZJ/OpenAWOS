@@ -82,9 +82,9 @@ class Radio:
             
     def SendReport(self, windReport):
         """Keys the radio and outputs the synthesized audio"""
-        avgSpeed = windReport['avgSpeed']
-        avgDir = windReport['avgDir']
-        gust = windReport['gust']
+        avgSpeed = int(round(windReport['avgSpeed']))
+        avgDir = int(round(windReport['avgDir'], -1))
+        gust = int(round(windReport['gust']))
         
         msg = "Wind, " 
         
