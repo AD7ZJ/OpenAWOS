@@ -86,30 +86,29 @@ class Radio:
         avgDir = windReport['avgDir']
         gust = windReport['gust']
         
-        self.SetTxLevel(True)
-        
-        self.audioDev.PlayWavFile('wind')
+        msg = "Wind, " 
         
         if (avgSpeed == 0):
-            self.audioDev.PlayWavFile('calm')
+            msg += "calm "
         else:
-            
             dirStr = str(avgDir)
             for digit in dirStr:
-                self.audioDev.PlayWavFile(digit)
+                msg += "%s, " % digit
             
-            self.audioDev.PlayWavFile('at')
+            msg += "at, "
             
             speedStr = str(avgSpeed)
             for digit in speedStr:
-                self.audioDev.PlayWavFile(digit)
+                msg += "%s, " % digit
                 
             if (gust != 0):
-                self.audioDev.PlayWavFile('gusting')
+                msg += "gusting, "
                 gustStr = str(gust)
                 for digit in gustStr:
-                    self.audioDev.PlayWavFile(digit)
-        
+                    msg += "%s, " % digit
+                    
+        self.SetTxLevel(True)
+        self.audioDev.Synthesize(msg)
         self.SetTxLevel(False)
             
     def GetTriggered(self):
