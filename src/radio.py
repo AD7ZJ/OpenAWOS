@@ -23,6 +23,7 @@ class Radio:
         """Start monitoring the radio's squelch line"""
         self.keepGoing = True
         self.thread = threading.Thread(target=self.Update)
+        self.thread.daemon = True
         self.thread.start()
         
     def Stop(self):

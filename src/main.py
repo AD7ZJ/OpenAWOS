@@ -12,7 +12,7 @@ from gpiozero import MCP3008
 class OpenAWOS:
     REPORT_INTERVAL = 10
     STATUS_INTERVAL = 20
-
+    MIN_TRIGGER_SPACING = 5
 
     def __init__(self, tncSerial="", ws425Serial = ""):
         """Constructor"""
@@ -22,9 +22,12 @@ class OpenAWOS:
         self.lonString = "00000.00"
         self.lastPacketTime = 0
         self.lastStatusPacketTime = 0
+        self.lastTrigTime = 0
         self.ws425SerialPort = ws425Serial
         self.tncSerialPort = tncSerial
-
+        self.keepGoing = False
+        self.thread = None
+        self.wxReport = None
 
     def SetCallsign(self, callsign):
         self.callsign = callsign
@@ -56,6 +59,29 @@ class OpenAWOS:
         average = readings / repetitions
         return (vref * average * conversion_factor)
 
+    def StartAudioTX(self):
+        """Start the thread that will send the audio reports"""
+        self.keepGoing = True
+        self.thread = threading.Thread(target=self.AudioTX)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def StopAudioTX(self):
+        self.keepGoing = False
+        self.thread.join()
+
+    def AudioTX(self):
+        while(self.keepGoing):
+            if (self.radio.GetTriggered()):
+                now = time.time()
+                if (now - self.lastTrigTime > self.MIN_TRIGGER_SPACING):
+                    self.radio.SendReport(self.wxReport)
+                    self.lastTrigTime = now
+
+            time.sleep(0.05)
+
+            
+
     def Run(self):
         print ("Starting OpenAWOS...")
         frame = aprs.Frame()
@@ -78,51 +104,52 @@ class OpenAWOS:
         self.radio = Radio()
         self.radio.Start()
 
-    
+        print("Starting AudioTX thread...")
+        self.StartAudioTX()
+
         while (1):
-            print self.radio.GetTriggered()
             # poll serial port
             line = port.readline()
             print line 
             if (line):
                 anemometer.Update(line)
-                avgSpeed = anemometer.GetAvgSpeed()
-                avgDir = anemometer.GetAvgDir()
-                gust = anemometer.GetGust()
-                print anemometer.checksum 
-                print anemometer.CalcChecksum(line)
+                if (anemometer.GetChecksum() == anemometer.CalcChecksum(line)):
+                    avgSpeed = anemometer.GetAvgSpeed()
+                    avgDir = anemometer.GetAvgDir()
+                    gust = anemometer.GetGust()
+                    self.wxReport = { 'avgSpeed' : avgSpeed,
+                                      'avgDir' : avgDir,
+                                      'gust' : gust}
 
-                windString = ""
-                if (avgSpeed <= 2.0):
-                    windString = "Calm"
-                elif (gust > 0):
-                    windString = "%03d@%02dG%d" % (avgSpeed, avgDir, gust)
-                else:
-                    windString = "%03d@%02d" % (avgSpeed, avgDir) 
-       
-                print windString 
-                lcdDev.WriteString(windString, lcdDev.LCD_LINE_2)
+                    windString = ""
+                    if (avgSpeed <= 2.0):
+                        windString = "Calm"
+                    elif (gust > 0):
+                        windString = "%03d@%02dG%d" % (avgSpeed, avgDir, gust)
+                    else:
+                        windString = "%03d@%02d" % (avgSpeed, avgDir) 
+           
+                    print windString 
+                    lcdDev.WriteString(windString, lcdDev.LCD_LINE_2)
 
-                now = time.time()
-                if (now - self.lastPacketTime > self.REPORT_INTERVAL):
-                    frame.text = '!%s/%s_%03d/%03dg%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust)
-                    tnc.write(frame.encode_kiss())
-                    self.lastPacketTime = now
-       
-                if (now - self.lastStatusPacketTime > self.STATUS_INTERVAL):
-                    frame.text = '>Battery: %.02fV' % (self.GetVoltage())
-                    tnc.write(frame.encode_kiss())
-                    self.lastStatusPacketTime = now
-    
-    def Stop(self):
-        self.radio.Stop()
-    
+                    now = time.time()
+                    if (now - self.lastPacketTime > self.REPORT_INTERVAL):
+                        frame.text = '!%s/%s_%03d/%03dg%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust)
+                        tnc.write(frame.encode_kiss())
+                        self.lastPacketTime = now
+           
+                    if (now - self.lastStatusPacketTime > self.STATUS_INTERVAL):
+                        frame.text = '>Battery: %.02fV' % (self.GetVoltage())
+                        tnc.write(frame.encode_kiss())
+                        self.lastStatusPacketTime = now
+        
 if __name__ == '__main__':
 
     # catch ctrl-c so we can cleanup the GPIO driver and child threads
     def sigHandler(signal, frame):
         print('Caught SIGINT, exiting...\n')
-        station.Stop()
+        station.StopAudioTX()
+        station.radio.Stop()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, sigHandler)

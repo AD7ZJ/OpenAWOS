@@ -10,5 +10,5 @@ class Audio:
         
 if __name__ == '__main__':
     a = Audio()
-    a.Synthesize("Wind 2 0 0 at 15 gusting 2 1")
+    a.Synthesize("Wind 2 0 0 at 1 5 gusting 2 1")
     

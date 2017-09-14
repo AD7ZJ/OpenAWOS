@@ -70,6 +70,9 @@ class Ws425:
             
         return checksum
 
+    def GetChecksum(self):
+        return self.checksum
+
     def GetAvgSpeed(self):
         """Return the average speed"""
         accum = 0
