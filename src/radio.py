@@ -89,7 +89,7 @@ class Radio:
         
         msg = "Wind, " 
         
-        if (avgSpeed == 0):
+        if (avgSpeed <= 3.0):
             msg += "calm "
         else:
             dirStr = str(avgDir)
@@ -136,6 +136,13 @@ class Radio:
         
     def SetTxLevel(self, state):
         """Set the TX output pin"""
-        
+        if (not self.simulate):
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+
+            GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+            return not GPIO.input(6)
+ 
     
     

@@ -28,6 +28,8 @@ class OpenAWOS:
         self.keepGoing = False
         self.thread = None
         self.wxReport = None
+        self.isTxingAudio = False
+        self.lcdDev = None
 
     def SetCallsign(self, callsign):
         self.callsign = callsign
@@ -75,8 +77,12 @@ class OpenAWOS:
             if (self.radio.GetTriggered()):
                 now = time.time()
                 if (now - self.lastTrigTime > self.MIN_TRIGGER_SPACING):
+                    self.lcdDev.WriteString("AZ86 Wind ON AIR", self.lcdDev.LCD_LINE_1)
+                    self.isTxingAudio = True
                     self.radio.SendReport(self.wxReport)
                     self.lastTrigTime = now
+                    self.isTxingAudio = False
+                    self.lcdDev.WriteString("AZ86 Wind       ", self.lcdDev.LCD_LINE_1)
 
             time.sleep(0.05)
 
@@ -98,8 +104,8 @@ class OpenAWOS:
         anemometer = Ws425()
         anemometer.Update()
 
-        lcdDev = lcd.I2CLcd()
-        lcdDev.WriteString("AZ86 Wind      ", lcdDev.LCD_LINE_1)
+        self.lcdDev = lcd.I2CLcd()
+        self.lcdDev.WriteString("AZ86 Wind      ", self.lcdDev.LCD_LINE_1)
     
         self.radio = Radio()
         self.radio.Start()
@@ -122,26 +128,27 @@ class OpenAWOS:
                                       'gust' : gust}
 
                     windString = ""
-                    if (avgSpeed <= 2.0):
+                    if (avgSpeed <= 3.0):
                         windString = "Calm"
                     elif (gust > 0):
                         windString = "%03d@%02dG%d" % (avgSpeed, avgDir, gust)
                     else:
                         windString = "%03d@%02d" % (avgSpeed, avgDir) 
            
-                    print windString 
-                    lcdDev.WriteString(windString, lcdDev.LCD_LINE_2)
+                    self.lcdDev.WriteString(windString, self.lcdDev.LCD_LINE_2)
 
-                    now = time.time()
-                    if (now - self.lastPacketTime > self.REPORT_INTERVAL):
-                        frame.text = '!%s/%s_%03d/%03dg%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust)
-                        tnc.write(frame.encode_kiss())
-                        self.lastPacketTime = now
-           
-                    if (now - self.lastStatusPacketTime > self.STATUS_INTERVAL):
-                        frame.text = '>Battery: %.02fV' % (self.GetVoltage())
-                        tnc.write(frame.encode_kiss())
-                        self.lastStatusPacketTime = now
+                    # don't send packets while transmitting audio
+                    if (not self.isTxingAudio):
+                        now = time.time()
+                        if (now - self.lastPacketTime > self.REPORT_INTERVAL):
+                            frame.text = '!%s/%s_%03d/%03dg%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust)
+                            tnc.write(frame.encode_kiss())
+                            self.lastPacketTime = now
+               
+                        if (now - self.lastStatusPacketTime > self.STATUS_INTERVAL):
+                            frame.text = '>Battery: %.02fV' % (self.GetVoltage())
+                            tnc.write(frame.encode_kiss())
+                            self.lastStatusPacketTime = now
         
 if __name__ == '__main__':
 
