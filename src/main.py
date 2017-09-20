@@ -30,6 +30,7 @@ class OpenAWOS:
         self.wxReport = None
         self.isTxingAudio = False
         self.lcdDev = None
+        self.lastNmeaPacketTime = 0
 
     def SetCallsign(self, callsign):
         self.callsign = callsign
@@ -77,12 +78,10 @@ class OpenAWOS:
             if (self.radio.GetTriggered()):
                 now = time.time()
                 if (now - self.lastTrigTime > self.MIN_TRIGGER_SPACING):
-                    self.lcdDev.WriteString("AZ86 Wind ON AIR", self.lcdDev.LCD_LINE_1)
                     self.isTxingAudio = True
                     self.radio.SendReport(self.wxReport)
                     self.lastTrigTime = now
                     self.isTxingAudio = False
-                    self.lcdDev.WriteString("AZ86 Wind       ", self.lcdDev.LCD_LINE_1)
 
             time.sleep(0.05)
 
@@ -135,6 +134,12 @@ class OpenAWOS:
                     else:
                         windString = "%03d@%02d" % (avgSpeed, avgDir) 
            
+                    if (self.isTxingAudio):
+                        self.lcdDev.WriteString("AZ86 Wind ON AIR", self.lcdDev.LCD_LINE_1)
+                    else:
+                        self.lcdDev.WriteString("AZ86 Wind       ", self.lcdDev.LCD_LINE_1)
+
+
                     self.lcdDev.WriteString(windString, self.lcdDev.LCD_LINE_2)
 
                     # don't send packets while transmitting audio

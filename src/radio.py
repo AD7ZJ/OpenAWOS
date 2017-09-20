@@ -18,6 +18,15 @@ class Radio:
         self.audioDev = audioDev
         if (self.audioDev == None):
             self.audioDev = audio.Audio()
+        if (not self.simulate):
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            # Setup the squelch input pin
+            GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            # setup the radio PTT pin
+            GPIO.setup(17, GPIO.OUT)
+
+
         
     def Start(self):
         """Start monitoring the radio's squelch line"""
@@ -108,9 +117,9 @@ class Radio:
                 for digit in gustStr:
                     msg += "%s, " % digit
                     
-        self.SetTxLevel(True)
+        self.SetPtt(True)
         self.audioDev.Synthesize(msg)
-        self.SetTxLevel(False)
+        self.SetPtt(False)
             
     def GetTriggered(self):
         trigd = False
@@ -128,21 +137,17 @@ class Radio:
             return self.simSquelchInput
         else:
             import RPi.GPIO as GPIO
-            GPIO.setmode(GPIO.BCM)
-            
-            GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-           
             return not GPIO.input(6)
         
-    def SetTxLevel(self, state):
-        """Set the TX output pin"""
+    def SetPtt(self, state):
+        """Set the raido PTT pin"""
         if (not self.simulate):
             import RPi.GPIO as GPIO
-            GPIO.setmode(GPIO.BCM)
+            if (state):
+                GPIO.output(17, GPIO.HIGH)
+            else:
+                GPIO.output(17, GPIO.LOW)
+                
 
-            GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-            return not GPIO.input(6)
- 
     
     
