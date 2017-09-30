@@ -1,5 +1,7 @@
 import signal
 import sys
+import os
+import glob
 import serial
 import time
 import kiss
@@ -31,6 +33,9 @@ class OpenAWOS:
         self.isTxingAudio = False
         self.lcdDev = None
         self.lastNmeaPacketTime = 0
+        self.ds18b20Dev = ""
+        self.tempSensorPresent = False
+        self.tempF = 0
 
     def SetCallsign(self, callsign):
         self.callsign = callsign
@@ -48,6 +53,57 @@ class OpenAWOS:
 
         self.latString = "%02d%02d.%02dN" % (int(degreesLat), int(minutesLat), (minutesLat - int(minutesLat)) * 100)
         self.lonString = "%03d%02d.%02dW" % (int(degreesLon), int(minutesLon), (minutesLon - int(minutesLon)) * 100)
+
+
+    def DS18B20Init(self):
+        try:
+            os.system('modprobe w1-gpio')
+            os.system('modprobe w1-therm')
+
+            # give the driver time to scan the bus
+            time.sleep(1)
+
+            # device files for DS18B20 sensors always start with 28- and take the form of 28-0000061573fa
+            ds18b20DevBaseDir = '/sys/bus/w1/devices/'
+            ds18b20DevDir = glob.glob(ds18b20DevBaseDir + '28*')[0]
+            self.ds18b20Dev = ds18b20DevDir + '/w1_slave'
+            self.tempSensorPresent = True
+        except IndexError:
+            print "No sensor detected"
+            self.tempSensorPresent = False
+
+
+    def DS18B20ReadRaw(self):
+        if (self.tempSensorPresent):
+            f = open(self.ds18b20Dev, 'r')
+            lines = f.readlines()
+            f.close()
+            return lines
+
+
+    def GetTemp(self):
+        if (self.tempSensorPresent):
+            readTries = 0;
+            # the output from the tempsensor looks like this:
+            # f6 01 4b 46 7f ff 0a 10 eb : crc=eb YES
+            # f6 01 4b 46 7f ff 0a 10 eb t=31375
+
+            lines = self.DS18B20ReadRaw()
+            while (lines[0].strip()[-3:] != 'YES' and readTries < 10):
+                time.sleep(0.2)
+                lines = self.DS18B20ReadRaw()
+                readTries = readTries + 1
+
+            equals_pos = lines[1].find('t=')
+
+            if equals_pos != -1:
+                temp_string = lines[1][equals_pos+2:]
+                temp_c = float(temp_string) / 1000.0
+                temp_f = temp_c * 9.0 / 5.0 + 32.0
+                return temp_c, temp_f
+        else:
+            return -99,-99
+
 
     def GetVoltage(self):
         vref = 3.33
@@ -102,12 +158,16 @@ class OpenAWOS:
         port = serial.Serial(baudrate=2400, port=self.ws425SerialPort, timeout=5)
         anemometer = Ws425()
         anemometer.Update()
+        self.lastNmeaPacketTime = time.time()
 
         self.lcdDev = lcd.I2CLcd()
         self.lcdDev.WriteString("AZ86 Wind      ", self.lcdDev.LCD_LINE_1)
     
         self.radio = Radio()
         self.radio.Start()
+
+        print("Initialize temp sensor...");
+        self.DS18B20Init()
 
         print("Starting AudioTX thread...")
         self.StartAudioTX()
@@ -119,6 +179,7 @@ class OpenAWOS:
             if (line):
                 anemometer.Update(line)
                 if (anemometer.GetChecksum() == anemometer.CalcChecksum(line)):
+                    self.lastNmeaPacketTime = time.time()
                     avgSpeed = anemometer.GetAvgSpeed()
                     avgDir = anemometer.GetAvgDir()
                     gust = anemometer.GetGust()
@@ -128,11 +189,11 @@ class OpenAWOS:
 
                     windString = ""
                     if (avgSpeed <= 3.0):
-                        windString = "Calm"
+                        windString = "Calm %dF" % self.tempF
                     elif (gust > 0):
-                        windString = "%03d@%02dG%d" % (avgSpeed, avgDir, gust)
+                        windString = "%03d@%02dG%d %dF" % (avgSpeed, avgDir, gust, self.tempF)
                     else:
-                        windString = "%03d@%02d" % (avgSpeed, avgDir) 
+                        windString = "%03d@%02d %dF" % (avgSpeed, avgDir, self.tempF) 
            
                     if (self.isTxingAudio):
                         self.lcdDev.WriteString("AZ86 Wind ON AIR", self.lcdDev.LCD_LINE_1)
@@ -144,9 +205,11 @@ class OpenAWOS:
 
                     # don't send packets while transmitting audio
                     if (not self.isTxingAudio):
+                        tempC, self.tempF = self.GetTemp()
+                        print tempC
                         now = time.time()
                         if (now - self.lastPacketTime > self.REPORT_INTERVAL):
-                            frame.text = '!%s/%s_%03d/%03dg%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust)
+                            frame.text = '!%s/%s_%03d/%03dg%03dt%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust, self.tempF)
                             tnc.write(frame.encode_kiss())
                             self.lastPacketTime = now
                
@@ -154,6 +217,10 @@ class OpenAWOS:
                             frame.text = '>Battery: %.02fV' % (self.GetVoltage())
                             tnc.write(frame.encode_kiss())
                             self.lastStatusPacketTime = now
+
+            now = time.time()
+            if (now - self.lastNmeaPacketTime > 10):
+                self.lcdDev.WriteString("No data :( %dF" % self.tempF, self.lcdDev.LCD_LINE_2)
         
 if __name__ == '__main__':
 
