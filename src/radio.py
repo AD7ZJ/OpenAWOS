@@ -96,7 +96,7 @@ class Radio:
         avgDir = int(round(windReport['avgDir'], -1))
         gust = int(round(windReport['gust']))
         
-        msg = "Wind, " 
+        msg = "Goodwin glider port, wind, " 
         
         if (avgSpeed <= 3.0):
             msg += "calm "

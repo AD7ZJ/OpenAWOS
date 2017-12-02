@@ -1,6 +1,7 @@
 import re
 import time
 import math
+import sys
 
 class Ws425:
     REF_TRUE = 0
@@ -22,41 +23,46 @@ class Ws425:
         self.windHistory = []
         
     def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=time.time()):
-        nmeaList = nmea.split(',')
-        
-        # Only try and parse $WIMWV strings with no empty sets
-        if (nmeaList[0] == '$WIMWV' and min(map(len, nmeaList)) > 0):
-            # Direction in degrees
-            self.dir = int(nmeaList[1])
+        try:
+            nmeaList = nmea.split(',')
             
-            # reference
-            refConv = {'R' : self.REF_RELATIVE,
-                       'T' : self.REF_TRUE}
-            self.reference = refConv[nmeaList[2]]
+            # Only try and parse $WIMWV strings with no empty sets
+            if (nmeaList[0] == '$WIMWV' and min(map(len, nmeaList)) > 0):
+                # Direction in degrees
+                self.dir = int(nmeaList[1])
                 
-            # speed
-            self.speed = float(nmeaList[3])
-            
-            # units
-            unitConv = {'K' : self.UNITS_KPH,
-                        'M' : self.UNITS_MPS,
-                        'N' : self.UNITS_KTS}
-            self.units = unitConv[nmeaList[4]]
-            
-            # status
-            validConv = {'A' : True,
-                         'V' : False}
-            self.valid = validConv[nmeaList[5].split('*')[0]]
-            
-            # checksum
-            self.checksum = int(nmeaList[5].split('*')[1], 16)
-            
-            now = int(ts)
-            history = {'dir' : self.dir, 'speed' : self.speed, 'time' : now}
-            # keep the last 10 minutes of samples
-            self.windHistory.append(history)
-            if (now - self.windHistory[0]['time'] > 600):
-                self.windHistory = self.windHistory[1:]
+                # reference
+                refConv = {'R' : self.REF_RELATIVE,
+                           'T' : self.REF_TRUE}
+                self.reference = refConv[nmeaList[2]]
+                    
+                # speed
+                self.speed = float(nmeaList[3])
+                
+                # units
+                unitConv = {'K' : self.UNITS_KPH,
+                            'M' : self.UNITS_MPS,
+                            'N' : self.UNITS_KTS}
+                self.units = unitConv[nmeaList[4]]
+                
+                # status
+                validConv = {'A' : True,
+                             'V' : False}
+                self.valid = validConv[nmeaList[5].split('*')[0]]
+                
+                # checksum
+                self.checksum = int(nmeaList[5].split('*')[1], 16)
+                
+                now = int(ts)
+                history = {'dir' : self.dir, 'speed' : self.speed, 'time' : now}
+                # keep the last 10 minutes of samples
+                self.windHistory.append(history)
+                if (now - self.windHistory[0]['time'] > 600):
+                    self.windHistory = self.windHistory[1:]
+        except:
+            e = sys.exc_info()[0]
+            print "Exception parsing NMEA message: %s" % e
+            #print nmeaList
 
     def CalcChecksum(self, nmea):
         str = ""

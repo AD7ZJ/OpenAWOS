@@ -12,8 +12,9 @@ import lcd
 from gpiozero import MCP3008
     
 class OpenAWOS:
-    REPORT_INTERVAL = 10
-    STATUS_INTERVAL = 20
+    # All times in seconds
+    REPORT_INTERVAL = 300
+    STATUS_INTERVAL = 600
     MIN_TRIGGER_SPACING = 5
 
     def __init__(self, tncSerial="", ws425Serial = ""):
@@ -206,7 +207,7 @@ class OpenAWOS:
                     # don't send packets while transmitting audio
                     if (not self.isTxingAudio):
                         tempC, self.tempF = self.GetTemp()
-                        print tempC
+                        print "Temperature: %dF" % self.tempF
                         now = time.time()
                         if (now - self.lastPacketTime > self.REPORT_INTERVAL):
                             frame.text = '!%s/%s_%03d/%03dg%03dt%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust, self.tempF)
