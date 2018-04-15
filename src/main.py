@@ -176,7 +176,7 @@ class OpenAWOS:
         while (1):
             # poll serial port
             line = port.readline()
-            print line 
+            #print line 
             if (line):
                 anemometer.Update(line)
                 if (anemometer.GetChecksum() == anemometer.CalcChecksum(line)):
@@ -189,25 +189,24 @@ class OpenAWOS:
                                       'gust' : gust}
 
                     windString = ""
-                    if (avgSpeed <= 3.0):
+                    if (avgSpeed <= 2.0):
                         windString = "Calm %dF" % self.tempF
                     elif (gust > 0):
-                        windString = "%03d@%02dG%d %dF" % (avgSpeed, avgDir, gust, self.tempF)
+                        windString = "%03d@%02dG%d %dF" % (avgDir, avgSpeed, gust, self.tempF)
                     else:
-                        windString = "%03d@%02d %dF" % (avgSpeed, avgDir, self.tempF) 
+                        windString = "%03d@%02d %dF" % (avgDir, avgSpeed, self.tempF) 
            
                     if (self.isTxingAudio):
                         self.lcdDev.WriteString("AZ86 Wind ON AIR", self.lcdDev.LCD_LINE_1)
                     else:
                         self.lcdDev.WriteString("AZ86 Wind       ", self.lcdDev.LCD_LINE_1)
 
-
                     self.lcdDev.WriteString(windString, self.lcdDev.LCD_LINE_2)
 
                     # don't send packets while transmitting audio
                     if (not self.isTxingAudio):
                         tempC, self.tempF = self.GetTemp()
-                        print "Temperature: %dF" % self.tempF
+                        #print "Temperature: %dF" % self.tempF
                         now = time.time()
                         if (now - self.lastPacketTime > self.REPORT_INTERVAL):
                             frame.text = '!%s/%s_%03d/%03dg%03dt%03dW425' % (self.latString, self.lonString, avgDir, avgSpeed, gust, self.tempF)

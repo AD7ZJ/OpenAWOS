@@ -22,7 +22,9 @@ class Ws425:
         # history is an array of dictionaries in the form of { 'dir', 'speed', 'time'}
         self.windHistory = []
         
-    def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=time.time()):
+    def Update(self, nmea="$WIMWV,010,T,07,N,A*01\r\n", ts=0):
+        if (ts == 0):
+            ts = time.time()
         try:
             nmeaList = nmea.split(',')
             
@@ -59,6 +61,7 @@ class Ws425:
                 self.windHistory.append(history)
                 if (now - self.windHistory[0]['time'] > 600):
                     self.windHistory = self.windHistory[1:]
+
         except:
             e = sys.exc_info()[0]
             print "Exception parsing NMEA message: %s" % e
