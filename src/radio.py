@@ -37,6 +37,7 @@ class Radio:
         
     def Stop(self):
         self.keepGoing = False
+        self.SetPtt(False)
         if (not self.simulate):
             import RPi.GPIO as GPIO
             GPIO.cleanup()

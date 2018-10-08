@@ -135,16 +135,20 @@ class OpenAWOS:
             if (self.radio.GetTriggered()):
                 now = time.time()
                 if (now - self.lastTrigTime > self.MIN_TRIGGER_SPACING):
+                    print "Starting audio broadcast..."
                     self.isTxingAudio = True
                     self.radio.SendReport(self.wxReport)
                     self.lastTrigTime = now
                     self.isTxingAudio = False
+                    print "Complete!"
 
             time.sleep(0.05)
 
             
 
     def Run(self):
+        simulateWx425 = False
+
         print ("Starting OpenAWOS...")
         frame = aprs.Frame()
         frame.source = aprs.Callsign(self.callsign)
@@ -175,8 +179,12 @@ class OpenAWOS:
 
         while (1):
             # poll serial port
-            line = port.readline()
-            #print line 
+            if (simulateWx425):
+                line = "$WIMWV,030,R,000.2,N,A*3C"
+                time.sleep(1)
+            else:
+                line = port.readline()
+            print line 
             if (line):
                 anemometer.Update(line)
                 if (anemometer.GetChecksum() == anemometer.CalcChecksum(line)):
@@ -223,22 +231,15 @@ class OpenAWOS:
                 self.lcdDev.WriteString("No data :( %dF" % self.tempF, self.lcdDev.LCD_LINE_2)
         
 if __name__ == '__main__':
-
-    # catch ctrl-c so we can cleanup the GPIO driver and child threads
-    def sigHandler(signal, frame):
-        print('Caught SIGINT, exiting...\n')
-        station.StopAudioTX()
-        station.radio.Stop()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, sigHandler)
-
-
     station = OpenAWOS(tncSerial = "/dev/ttyAMA0", ws425Serial = "/dev/ttyUSB0")
     station.SetCallsign("AD7ZJ-14")
     station.SetPath("WIDE1-1")
-    station.SetLatLong(lattitude = 34.68576939, longitude = 112.29003667)
-
-    station.Run()
-
+ 
+    try:
+        station.SetLatLong(lattitude = 34.68576939, longitude = 112.29003667)
+        station.Run()
+    except:
+        station.StopAudioTX()
+        station.radio.Stop()
+        sys.exit(0)
 
